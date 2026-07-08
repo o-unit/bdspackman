@@ -1,0 +1,10 @@
+# Binaries
+/bin/
+/dist/
+
+# VSCode
+.vscode/
+
+# Go workspace
+go.work
+go.work.sum
