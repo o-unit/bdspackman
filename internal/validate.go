@@ -4,10 +4,17 @@ import "fmt"
 
 // ValidatePacks validates all scanned packs.
 //
-// Validation includes:
-//   - duplicate UUIDs
-func ValidatePacks(packs []Pack) {
+// Returns true if one or more validation errors were found.
+func ValidatePacks(packs []Pack) bool {
 	validateDuplicateUUIDs(packs)
+
+	for _, pack := range packs {
+		if pack.Status == StatusError {
+			return true
+		}
+	}
+
+	return false
 }
 
 // validateDuplicateUUIDs marks duplicated UUIDs as StatusError.

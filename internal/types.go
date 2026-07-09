@@ -1,5 +1,7 @@
 package internal
 
+import "fmt"
+
 // PackType represents the type of a pack.
 type PackType int
 
@@ -8,6 +10,17 @@ const (
 	PackTypeResource
 )
 
+func (t PackType) String() string {
+	switch t {
+	case PackTypeBehavior:
+		return "BP"
+	case PackTypeResource:
+		return "RP"
+	default:
+		return "UNKNOWN"
+	}
+}
+
 // PackLocation represents where a pack is stored.
 type PackLocation int
 
@@ -15,6 +28,17 @@ const (
 	PackLocationServer PackLocation = iota
 	PackLocationWorld
 )
+
+func (l PackLocation) String() string {
+	switch l {
+	case PackLocationServer:
+		return "Server"
+	case PackLocationWorld:
+		return "World"
+	default:
+		return "Unknown"
+	}
+}
 
 // PackStatus represents the current state of a pack.
 type PackStatus int
@@ -25,6 +49,21 @@ const (
 	StatusError
 	StatusSystem
 )
+
+func (s PackStatus) String() string {
+	switch s {
+	case StatusOff:
+		return "OFF"
+	case StatusOn:
+		return "ON"
+	case StatusError:
+		return "ERROR"
+	case StatusSystem:
+		return "SYSTEM"
+	default:
+		return "UNKNOWN"
+	}
+}
 
 // Pack contains all information about a behavior pack or resource pack.
 type Pack struct {
@@ -48,6 +87,19 @@ type Pack struct {
 
 	// Error information
 	Error error
+}
+
+func (p Pack) VersionString() string {
+	if len(p.Version) != 3 {
+		return ""
+	}
+
+	return fmt.Sprintf(
+		"%d.%d.%d",
+		p.Version[0],
+		p.Version[1],
+		p.Version[2],
+	)
 }
 
 // Manifest represents manifest.json.
