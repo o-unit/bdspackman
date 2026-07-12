@@ -27,10 +27,9 @@ jobs:
 
       - name: Package
         run: |
-          cd build/${GITHUB_REF_NAME}/linux-amd64
-          zip bdspackman-${GITHUB_REF_NAME}-linux-amd64.zip bdspackman
-          cd ../../../build/${GITHUB_REF_NAME}/linux-arm64
-          zip bdspackman-${GITHUB_REF_NAME}-linux-arm64.zip bdspackman
+          cd build/${GITHUB_REF_NAME}
+          zip -j bdspackman-${GITHUB_REF_NAME}-linux-amd64.zip linux-amd64/bdspackman
+          zip -j bdspackman-${GITHUB_REF_NAME}-linux-arm64.zip linux-arm64/bdspackman
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
