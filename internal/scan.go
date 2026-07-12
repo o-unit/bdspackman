@@ -78,6 +78,12 @@ func ScanPacks(cfg Config) ([]Pack, error) {
 
 	ValidatePacks(packs)
 
+	applyWorldOrder(
+		packs,
+		behaviorEnabled,
+		resourceEnabled,
+	)
+
 	sortPacks(packs)
 
 	return packs, nil
@@ -169,17 +175,8 @@ func buildPack(
 	pack.UUID = manifest.Header.UUID
 	pack.Version = manifest.Header.Version
 
-	name, err := ResolveDisplayName(
-		path,
-		language,
-		manifest.Header.Name,
-	)
-
-	if err != nil {
-		pack.DisplayName = manifest.Header.Name
-	} else {
-		pack.DisplayName = name
-	}
+	pack.Name = manifest.Header.Name
+	pack.DisplayName = ResolveDisplayName(&pack, language)
 
 	if pack.Status != StatusSystem {
 
@@ -199,9 +196,19 @@ func sortPacks(packs []Pack) {
 		a := packs[i]
 		b := packs[j]
 
-		// Server → World
+		// Status
+		if a.Status != b.Status {
+			return a.Status < b.Status
+		}
+
+		// ON同士は現在の順番を維持する
+		if a.Status == StatusOn {
+			return false
+		}
+
+		// World → Server
 		if a.Location != b.Location {
-			return a.Location < b.Location
+			return a.Location > b.Location
 		}
 
 		// BP → RP
@@ -227,7 +234,6 @@ func sortPacks(packs []Pack) {
 		return a.UUID < b.UUID
 	})
 }
-
 func compareVersion(a, b []uint32) int {
 
 	max := len(a)
@@ -380,5 +386,92 @@ func scanTargets(cfg Config, behaviorSet, resourceSet map[string]struct{}) []str
 			Location: PackLocationWorld,
 			Enabled:  resourceSet,
 		},
+	}
+}
+
+// applyWorldOrder reorders enabled packs to match the order stored in
+// world_behavior_packs.json and world_resource_packs.json.
+//
+// Disabled packs remain after enabled packs.
+// The relative order of disabled packs is preserved.
+func applyWorldOrder(
+	packs []Pack,
+	behavior []WorldPack,
+	resource []WorldPack,
+) {
+
+	var ordered []Pack
+	used := make([]bool, len(packs))
+
+	// Behavior Packs
+	appendOrderedPacks(
+		&ordered,
+		used,
+		packs,
+		PackTypeBehavior,
+		behavior,
+	)
+
+	// Resource Packs
+	appendOrderedPacks(
+		&ordered,
+		used,
+		packs,
+		PackTypeResource,
+		resource,
+	)
+
+	// Remaining packs (OFF / ERROR / SYSTEM)
+	for i := range packs {
+
+		if used[i] {
+			continue
+		}
+
+		ordered = append(ordered, packs[i])
+	}
+
+	copy(packs, ordered)
+}
+
+func appendOrderedPacks(
+	dst *[]Pack,
+	used []bool,
+	packs []Pack,
+	packType PackType,
+	world []WorldPack,
+) {
+
+	for _, wp := range world {
+
+		// Worldを優先
+		for location := PackLocationWorld; location >= PackLocationServer; location-- {
+
+			for i := range packs {
+
+				if used[i] {
+					continue
+				}
+
+				p := packs[i]
+
+				if p.Type != packType {
+					continue
+				}
+
+				if p.Location != location {
+					continue
+				}
+
+				if p.UUID != wp.PackID {
+					continue
+				}
+
+				*dst = append(*dst, p)
+				used[i] = true
+
+				break
+			}
+		}
 	}
 }

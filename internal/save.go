@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,7 +8,8 @@ import (
 
 // SaveOptions controls save behavior.
 type SaveOptions struct {
-	DryRun bool
+	ExportPrefix string
+	ExportDir    string
 }
 
 // SaveWorldPackFiles updates world_behavior_packs.json and
@@ -18,39 +18,84 @@ func SaveWorldPackFiles(
 	cfg Config,
 	packs []Pack,
 	opt SaveOptions,
-) error {
+) (string, error) {
 
-	behavior := buildWorldPackList(packs, PackTypeBehavior)
-	resource := buildWorldPackList(packs, PackTypeResource)
+	behavior := buildWorldPackList(
+		packs,
+		PackTypeBehavior,
+	)
 
-	if opt.DryRun {
+	resource := buildWorldPackList(
+		packs,
+		PackTypeResource,
+	)
 
-		fmt.Println("=== Dry Run ===")
+	// Export mode
+	if opt.ExportPrefix != "" || opt.ExportDir != "" {
+		behaviorDir := filepath.Dir(cfg.WorldBehaviorJSON())
+		resourceDir := filepath.Dir(cfg.WorldResourceJSON())
 
-		fmt.Printf(
-			"Behavior Packs : %d\n",
-			len(behavior),
+		if opt.ExportDir != "" {
+			behaviorDir = opt.ExportDir
+			resourceDir = opt.ExportDir
+
+			if err := os.MkdirAll(opt.ExportDir, 0755); err != nil {
+				return "", err
+			}
+		}
+
+		behaviorPath := filepath.Join(
+			behaviorDir,
+			opt.ExportPrefix+filepath.Base(cfg.WorldBehaviorJSON()),
 		)
 
-		fmt.Printf(
-			"Resource Packs : %d\n",
-			len(resource),
+		resourcePath := filepath.Join(
+			resourceDir,
+			opt.ExportPrefix+filepath.Base(cfg.WorldResourceJSON()),
 		)
 
-		return nil
+		if err := exportWorldPackJSON(
+			behaviorPath,
+			behavior,
+		); err != nil {
+			return "", err
+		}
+
+		if err := exportWorldPackJSON(
+			resourcePath,
+			resource,
+		); err != nil {
+			return "", err
+		}
+
+		return "Exported.", nil
 	}
 
+	// Normal save
 	if err := saveWorldPackJSON(
 		cfg.WorldBehaviorJSON(),
 		behavior,
 	); err != nil {
-		return err
+		return "", err
 	}
 
 	if err := saveWorldPackJSON(
 		cfg.WorldResourceJSON(),
 		resource,
 	); err != nil {
+		return "", err
+	}
+
+	return "Saved.", nil
+}
+
+// exportWorldPackJSON writes one world_*_packs.json directly.
+func exportWorldPackJSON(
+	path string,
+	packs []WorldPack,
+) error {
+
+	if err := SaveWorldPacks(path, packs); err != nil {
 		return err
 	}
 
@@ -92,7 +137,7 @@ func saveWorldPackJSON(
 
 	tmp := path + ".tmp"
 
-	if err := writeJSON(tmp, packs); err != nil {
+	if err := SaveWorldPacks(tmp, packs); err != nil {
 		return err
 	}
 
@@ -107,28 +152,20 @@ func saveWorldPackJSON(
 	return nil
 }
 
+// writeJSON writes already-generated JSON data.
 func writeJSON(
 	path string,
-	v any,
+	data []byte,
 ) error {
 
-	file, err := os.Create(path)
-	if err != nil {
+	if err := os.WriteFile(
+		path,
+		data,
+		0644,
+	); err != nil {
+
 		return fmt.Errorf(
-			"create %s: %w",
-			path,
-			err,
-		)
-	}
-
-	defer file.Close()
-
-	enc := json.NewEncoder(file)
-	enc.SetIndent("", "    ")
-
-	if err := enc.Encode(v); err != nil {
-		return fmt.Errorf(
-			"encode %s: %w",
+			"write %s: %w",
 			path,
 			err,
 		)

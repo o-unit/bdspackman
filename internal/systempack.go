@@ -27,7 +27,10 @@ func IsSystemPack(location PackLocation, folderName string) bool {
 		strings.HasSuffix(name, "library"):
 		return true
 
-	case strings.HasPrefix(name, "vanilla"):
+	case name == "vanilla":
+		return true
+
+	case strings.HasPrefix(name, "vanilla_"):
 		return true
 	}
 

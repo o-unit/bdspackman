@@ -72,5 +72,9 @@ func lookupLang(path, key string) (string, bool) {
 		}
 	}
 
+	if err := scanner.Err(); err != nil {
+		return "", false
+	}
+
 	return "", false
 }
