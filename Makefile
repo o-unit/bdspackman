@@ -12,16 +12,17 @@ build:
 		./cmd/bdspackman
 
 release:
-	mkdir -p $(OUTDIR)
+	mkdir -p $(OUTDIR)/linux-amd64
+	mkdir -p $(OUTDIR)/linux-arm64
 
 	GOOS=linux GOARCH=amd64 \
 	go build -ldflags="-s -w" \
-		-o $(OUTDIR)/$(APP)-linux-amd64 \
+		-o $(OUTDIR)/linux-amd64/$(APP) \
 		./cmd/bdspackman
 
 	GOOS=linux GOARCH=arm64 \
 	go build -ldflags="-s -w" \
-		-o $(OUTDIR)/$(APP)-linux-arm64 \
+		-o $(OUTDIR)/linux-arm64/$(APP) \
 		./cmd/bdspackman
 
 clean:

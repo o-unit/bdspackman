@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: |
+          make release VERSION=${GITHUB_REF_NAME}
+
+      - name: Package
+        run: |
+          cd build/${GITHUB_REF_NAME}/linux-amd64
+          zip bdspackman-${GITHUB_REF_NAME}-linux-amd64.zip bdspackman
+          cd ../../../build/${GITHUB_REF_NAME}/linux-arm64
+          zip bdspackman-${GITHUB_REF_NAME}-linux-arm64.zip bdspackman
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/${{ github.ref_name }}/bdspackman-${{ github.ref_name }}-linux-amd64.zip
+            build/${{ github.ref_name }}/bdspackman-${{ github.ref_name }}-linux-arm64.zip
