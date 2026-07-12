@@ -34,7 +34,7 @@ func LoadConfig() (Config, error) {
 		&cfg.WorldName,
 		"world",
 		"",
-		"World name (required)",
+		"World name. If omitted, level-name in server.properties is used.",
 	)
 
 	flag.StringVar(
@@ -75,7 +75,23 @@ func LoadConfig() (Config, error) {
 	flag.Parse()
 
 	if cfg.WorldName == "" {
-		return cfg, fmt.Errorf("--world is required")
+
+		props, err := LoadServerProperties(cfg.ServerDir)
+		if err != nil {
+			return cfg, fmt.Errorf(
+				"cannot determine world name: %w",
+				err,
+			)
+		}
+
+		world := props["level-name"]
+		if world == "" {
+			return cfg, fmt.Errorf(
+				"cannot determine world name: level-name not found",
+			)
+		}
+
+		cfg.WorldName = world
 	}
 
 	serverDir, err := filepath.Abs(cfg.ServerDir)
