@@ -46,6 +46,7 @@ type PackStatus int
 const (
 	StatusOff PackStatus = iota
 	StatusOn
+	StatusDuplicate
 	StatusError
 	StatusSystem
 )
@@ -56,6 +57,8 @@ func (s PackStatus) String() string {
 		return "OFF"
 	case StatusOn:
 		return "ON"
+	case StatusDuplicate:
+		return "DUP"
 	case StatusError:
 		return "ERROR"
 	case StatusSystem:

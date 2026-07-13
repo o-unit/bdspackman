@@ -129,6 +129,15 @@ func (m *Model) toggleCurrent() {
 
 	pack := &m.Packs[m.Cursor]
 
+	if pack.Status == internal.StatusDuplicate {
+
+		m.setStatus(
+			"Duplicate pack. Toggle the World pack instead.",
+		)
+
+		return
+	}
+
 	internal.TogglePack(pack)
 	m.updateStatusFromSelection()
 }

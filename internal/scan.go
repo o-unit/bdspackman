@@ -77,13 +77,12 @@ func ScanPacks(cfg Config) ([]Pack, error) {
 	}
 
 	ValidatePacks(packs)
-
 	applyWorldOrder(
 		packs,
 		behaviorEnabled,
 		resourceEnabled,
 	)
-
+	markDuplicatePacks(packs)
 	sortPacks(packs)
 
 	return packs, nil
@@ -350,6 +349,48 @@ func appendOrderedPacks(
 
 				break
 			}
+		}
+	}
+}
+
+func markDuplicatePacks(packs []Pack) {
+
+	worldUUIDs := make(map[PackType]map[string]struct{})
+
+	worldUUIDs[PackTypeBehavior] = make(map[string]struct{})
+	worldUUIDs[PackTypeResource] = make(map[string]struct{})
+
+	// Worldに存在するUUIDを記録
+	for _, pack := range packs {
+
+		if pack.Location != PackLocationWorld {
+			continue
+		}
+
+		if pack.Status == StatusError ||
+			pack.Status == StatusSystem {
+			continue
+		}
+
+		worldUUIDs[pack.Type][pack.UUID] = struct{}{}
+	}
+
+	// Server側をDuplicateにする
+	for i := range packs {
+
+		pack := &packs[i]
+
+		if pack.Location != PackLocationServer {
+			continue
+		}
+
+		if pack.Status == StatusError ||
+			pack.Status == StatusSystem {
+			continue
+		}
+
+		if _, ok := worldUUIDs[pack.Type][pack.UUID]; ok {
+			pack.Status = StatusDuplicate
 		}
 	}
 }
