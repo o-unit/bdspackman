@@ -65,6 +65,16 @@ func (m Model) columns() []column {
 		})
 	}
 
+	if m.Config.ShowDirName {
+		columns = append(columns, column{
+			Header: "DirName",
+			Width:  30,
+			Value: func(pack internal.Pack, _ int) string {
+				return pack.FolderName
+			},
+		})
+	}
+
 	columns = append(columns, column{
 		Header: "Name",
 		Width:  0, // 0 = remaining width

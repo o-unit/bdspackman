@@ -14,6 +14,7 @@ type Config struct {
 	WorldName       string
 	Language        string
 	ShowUUID        bool
+	ShowDirName     bool
 	ShowSystemPacks bool
 	ExportPrefix    string
 	ExportDir       string
@@ -57,6 +58,13 @@ func LoadFlags() (Config, error) {
 		"uuid",
 		false,
 		"Show UUID column",
+	)
+
+	flag.BoolVar(
+		&cfg.ShowDirName,
+		"dirname",
+		false,
+		"Show directory name column",
 	)
 
 	flag.BoolVar(
