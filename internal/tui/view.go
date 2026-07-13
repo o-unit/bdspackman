@@ -42,10 +42,22 @@ func (m Model) View() string {
 
 	for _, c := range columns {
 
+		header := c.Header
+
+		// 幅を揃える
+		if c.Width > 0 {
+			header = fmt.Sprintf("%-*s", c.Width, header)
+		}
+
+		// 必要なら色付け
+		header = RenderHeader(header)
+
+		// 出力
 		if c.Width == 0 {
-			fmt.Fprintf(&b, "%s", c.Header)
+			b.WriteString(header)
 		} else {
-			fmt.Fprintf(&b, "%-*s ", c.Width, c.Header)
+			b.WriteString(header)
+			b.WriteByte(' ')
 		}
 	}
 
@@ -76,7 +88,7 @@ func (m Model) View() string {
 
 		cursor := " "
 		if i == m.Cursor {
-			cursor = "▶"
+			cursor = selectedStyle.Render("▶")
 		}
 
 		for col, c := range columns {
@@ -96,15 +108,22 @@ func (m Model) View() string {
 				continue
 			}
 
+			// まず幅を揃える
+			if c.Width > 0 {
+				value = fmt.Sprintf("%-*s", c.Width, value)
+			}
+
+			// Status列だけ色を付ける
+			if c.Header == "Status" {
+				value = RenderStatus(value, pack.Status)
+			}
+
+			// 出力
 			if c.Width == 0 {
 				b.WriteString(value)
 			} else {
-				fmt.Fprintf(
-					&b,
-					"%-*s ",
-					c.Width,
-					value,
-				)
+				b.WriteString(value)
+				b.WriteByte(' ')
 			}
 		}
 
@@ -118,6 +137,7 @@ func (m Model) View() string {
 	var (
 		on     int
 		off    int
+		dup    int
 		system int
 		errors int
 	)
@@ -132,6 +152,9 @@ func (m Model) View() string {
 		case internal.StatusOff:
 			off++
 
+		case internal.StatusDuplicate:
+			dup++
+
 		case internal.StatusSystem:
 			system++
 
@@ -141,10 +164,20 @@ func (m Model) View() string {
 	}
 
 	fmt.Fprintln(&b)
-	fmt.Fprintf(&b, "ON     : %d\n", on)
-	fmt.Fprintf(&b, "OFF    : %d\n", off)
-	fmt.Fprintf(&b, "System : %d\n", system)
-	fmt.Fprintf(&b, "Errors : %d\n", errors)
+	fmt.Fprintf(
+		&b,
+		"%s : %d   %s : %d   %s : %d   %s : %d   %s : %d\n",
+		statusOnStyle.Render("ON"),
+		on,
+		statusOffStyle.Render("OFF"),
+		off,
+		statusDuplicateStyle.Render("DUP"),
+		dup,
+		statusSystemStyle.Render("System"),
+		system,
+		statusErrorStyle.Render("Errors"),
+		errors,
+	)
 
 	// ----------------------------------------------------------------
 	// Status
