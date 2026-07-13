@@ -9,6 +9,7 @@ import (
 
 // Config stores program configuration.
 type Config struct {
+	Version         bool
 	ServerDir       string
 	WorldName       string
 	Language        string
@@ -19,9 +20,16 @@ type Config struct {
 }
 
 // LoadConfig parses command line arguments.
-func LoadConfig() (Config, error) {
+func LoadFlags() (Config, error) {
 
 	cfg := Config{}
+
+	flag.BoolVar(
+		&cfg.Version,
+		"version",
+		false,
+		"show version",
+	)
 
 	flag.StringVar(
 		&cfg.ServerDir,
@@ -74,6 +82,10 @@ func LoadConfig() (Config, error) {
 
 	flag.Parse()
 
+	return cfg, nil
+}
+
+func CompleteConfig(cfg Config) (Config, error) {
 	if cfg.WorldName == "" {
 
 		props, err := LoadServerProperties(cfg.ServerDir)

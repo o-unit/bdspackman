@@ -10,9 +10,28 @@ import (
 	"github.com/o-unit/bdspackman/internal/tui"
 )
 
+var (
+	version = "dev"
+	commit  = "unknown"
+)
+
 func main() {
 
-	cfg, err := internal.LoadConfig()
+	cfg, err := internal.LoadFlags()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	if cfg.Version {
+		fmt.Printf(
+			"bdspackman %s\n",
+			version,
+		)
+		return
+	}
+
+	cfg, err = internal.CompleteConfig(cfg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
