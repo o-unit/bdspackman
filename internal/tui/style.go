@@ -27,6 +27,19 @@ var (
 	statusSystemStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("12"))
 
+	statusInfoStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("12"))
+
+	statusSuccessStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("10"))
+
+	statusWarningStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("11"))
+
+	statusConfirmStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("13")).
+				Bold(true)
+
 	headerStyle = lipgloss.NewStyle().
 			Bold(true)
 )
@@ -34,6 +47,39 @@ var (
 // RenderHeader applies the style for a column header.
 func RenderHeader(text string) string {
 	return headerStyle.Render(text)
+}
+
+func RenderStatusMessage(status StatusMessage) string {
+	if status.Empty() {
+		return ""
+	}
+
+	label := status.Label()
+	if label != "" {
+		label += ": "
+	}
+
+	value := label + status.Text
+
+	switch status.Level {
+	case StatusLevelInfo, StatusLevelSelection:
+		return statusInfoStyle.Render(value)
+
+	case StatusLevelSuccess:
+		return statusSuccessStyle.Render(value)
+
+	case StatusLevelWarning:
+		return statusWarningStyle.Render(value)
+
+	case StatusLevelError:
+		return statusErrorStyle.Render(value)
+
+	case StatusLevelConfirm:
+		return statusConfirmStyle.Render(value)
+
+	default:
+		return value
+	}
 }
 
 func RenderStatus(value string, status internal.PackStatus) string {
