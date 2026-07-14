@@ -13,11 +13,14 @@ func (m *Model) updateHelp() {
 
 	case ModeNormal:
 		m.HelpMessage =
-			"↑↓ Move  Ctrl+↑↓ Reorder Space Toggle  M MovePack  Esc Quit"
+			"↑↓ Move  Ctrl+↑↓ Reorder Space Toggle  M MovePack  D Delete  Esc Quit"
 
 	case ModeConfirmSave:
 		m.HelpMessage =
 			"Y Save  N Cancel"
+	case ModeConfirmDelete:
+		m.HelpMessage =
+			"Y Delete  N Cancel"
 	default:
 		m.HelpMessage = ""
 	}
@@ -66,6 +69,22 @@ func (m *Model) enterSaveConfirm() {
 	m.updateHelp()
 }
 
+func (m *Model) enterDeleteConfirm() {
+	if len(m.Packs) == 0 {
+		return
+	}
+
+	pack := m.Packs[m.Cursor]
+	if pack.Status == internal.StatusSystem {
+		m.setStatus(StatusLevelWarning, "System pack cannot be deleted.")
+		return
+	}
+
+	m.Mode = ModeConfirmDelete
+	m.setStatus(StatusLevelConfirm, "Delete "+pack.FolderName+"? (Y=yes / N=no)")
+	m.updateHelp()
+}
+
 // enterNormalMode switches back to normal mode.
 func (m *Model) enterNormalMode() {
 
@@ -94,6 +113,30 @@ func (m *Model) save() {
 	}
 
 	m.setStatus(StatusLevelSuccess, message)
+}
+
+func (m *Model) deleteCurrentPack() {
+	if len(m.Packs) == 0 {
+		m.enterNormalMode()
+		return
+	}
+
+	pack := m.Packs[m.Cursor]
+
+	if err := internal.DeletePack(pack); err != nil {
+		m.enterNormalMode()
+		m.setStatus(StatusLevelError, "Delete failed: "+err.Error())
+		return
+	}
+
+	m.Packs = append(m.Packs[:m.Cursor], m.Packs[m.Cursor+1:]...)
+	if m.Cursor >= len(m.Packs) && m.Cursor > 0 {
+		m.Cursor--
+	}
+
+	m.enterNormalMode()
+	m.setStatus(StatusLevelSuccess, "Deleted "+pack.FolderName+".")
+	m.updateStatusFromSelection()
 }
 
 // moveUp moves the cursor up by one line.

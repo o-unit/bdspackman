@@ -13,6 +13,7 @@ const (
 	// ModeNormal is the default pack list screen.
 	ModeNormal Mode = iota
 	ModeConfirmSave
+	ModeConfirmDelete
 
 	// (Future)
 	// ModeSearch
