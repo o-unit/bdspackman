@@ -1,8 +1,6 @@
 package internal
 
 import (
-	"fmt"
-	"os"
 	"path/filepath"
 )
 
@@ -39,7 +37,7 @@ func SaveWorldPackFiles(
 			behaviorDir = opt.ExportDir
 			resourceDir = opt.ExportDir
 
-			if err := os.MkdirAll(opt.ExportDir, 0755); err != nil {
+			if err := EnsureDir(opt.ExportDir); err != nil {
 				return "", err
 			}
 		}
@@ -135,18 +133,13 @@ func saveWorldPackJSON(
 	packs []WorldPack,
 ) error {
 
-	tmp := path + ".tmp"
-
-	if err := SaveWorldPacks(tmp, packs); err != nil {
+	data, err := marshalWorldPackJSON(packs)
+	if err != nil {
 		return err
 	}
 
-	if err := os.Rename(tmp, path); err != nil {
-		return fmt.Errorf(
-			"rename %s: %w",
-			filepath.Base(path),
-			err,
-		)
+	if err := AtomicWriteFile(path, data, 0644); err != nil {
+		return err
 	}
 
 	return nil

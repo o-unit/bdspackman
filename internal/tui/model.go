@@ -30,13 +30,13 @@ type Model struct {
 	Mode Mode
 
 	// Status message shown above the help line.
-	StatusMessage string
+	StatusMessage StatusMessage
 
 	// Help message shown at the bottom.
 	HelpMessage string
 
 	// Message for the currently selected pack.
-	SelectionMessage string
+	SelectionMessage StatusMessage
 }
 
 // NewModel creates a new TUI model.
@@ -49,9 +49,9 @@ func NewModel(cfg internal.Config, packs []internal.Pack) Model {
 		Cursor: 0,
 		Mode:   ModeNormal,
 
-		StatusMessage:    "",
+		StatusMessage:    StatusMessage{},
 		HelpMessage:      "",
-		SelectionMessage: "",
+		SelectionMessage: StatusMessage{},
 	}
 
 	model.updateHelp()
