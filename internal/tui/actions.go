@@ -2,11 +2,6 @@ package tui
 
 import "github.com/o-unit/bdspackman/internal"
 
-// setStatus updates the status bar message.
-func (m *Model) setStatus(message string) {
-	m.StatusMessage = message
-}
-
 func (m *Model) setHelp(message string) {
 	m.HelpMessage = message
 }
@@ -18,7 +13,7 @@ func (m *Model) updateHelp() {
 
 	case ModeNormal:
 		m.HelpMessage =
-			"↑↓ Move  Ctrl+↑↓ Reorder Space Toggle  Esc Quit"
+			"↑↓ Move  Ctrl+↑↓ Reorder Space Toggle  M MovePack  Esc Quit"
 
 	case ModeConfirmSave:
 		m.HelpMessage =
@@ -32,7 +27,7 @@ func (m *Model) updateHelp() {
 func (m *Model) updateStatusFromSelection() {
 
 	if len(m.Packs) == 0 {
-		m.SelectionMessage = ""
+		m.SelectionMessage = StatusMessage{}
 		return
 	}
 
@@ -43,22 +38,22 @@ func (m *Model) updateStatusFromSelection() {
 	case internal.StatusError:
 
 		if pack.Error != nil {
-			m.SelectionMessage = pack.Error.Error()
+			m.setSelectionStatus(StatusLevelError, pack.Error.Error())
 		} else {
-			m.SelectionMessage = "Unknown error."
+			m.setSelectionStatus(StatusLevelError, "Unknown error.")
 		}
 
 	case internal.StatusSystem:
-		m.SelectionMessage = "System pack"
+		m.setSelectionStatus(StatusLevelSelection, "System pack")
 
 	case internal.StatusOn:
-		m.SelectionMessage = "Enabled"
+		m.setSelectionStatus(StatusLevelSelection, "Enabled")
 
 	case internal.StatusOff:
-		m.SelectionMessage = "Disabled"
+		m.setSelectionStatus(StatusLevelSelection, "Disabled")
 
 	default:
-		m.SelectionMessage = ""
+		m.SelectionMessage = StatusMessage{}
 	}
 }
 
@@ -67,7 +62,7 @@ func (m *Model) enterSaveConfirm() {
 
 	m.Mode = ModeConfirmSave
 
-	m.setStatus("Save changes? (Y=yes / N=no)")
+	m.setStatus(StatusLevelConfirm, "Save changes? (Y=yes / N=no)")
 	m.updateHelp()
 }
 
@@ -75,6 +70,7 @@ func (m *Model) enterSaveConfirm() {
 func (m *Model) enterNormalMode() {
 
 	m.Mode = ModeNormal
+	m.clearStatus()
 	m.updateHelp()
 }
 
@@ -93,11 +89,11 @@ func (m *Model) save() {
 	m.enterNormalMode()
 
 	if err != nil {
-		m.setStatus("Save failed: " + err.Error())
+		m.setStatus(StatusLevelError, "Save failed: "+err.Error())
 		return
 	}
 
-	m.setStatus(message)
+	m.setStatus(StatusLevelSuccess, message)
 }
 
 // moveUp moves the cursor up by one line.
@@ -105,6 +101,7 @@ func (m *Model) moveUp() {
 
 	if m.Cursor > 0 {
 		m.Cursor--
+		m.clearStatus()
 	}
 
 	m.updateStatusFromSelection()
@@ -115,6 +112,7 @@ func (m *Model) moveDown() {
 
 	if m.Cursor < len(m.Packs)-1 {
 		m.Cursor++
+		m.clearStatus()
 	}
 
 	m.updateStatusFromSelection()
@@ -132,6 +130,7 @@ func (m *Model) toggleCurrent() {
 	if pack.Status == internal.StatusDuplicate {
 
 		m.setStatus(
+			StatusLevelWarning,
 			"Duplicate pack. Toggle the World pack instead.",
 		)
 
@@ -139,6 +138,47 @@ func (m *Model) toggleCurrent() {
 	}
 
 	internal.TogglePack(pack)
+	m.clearStatus()
+	m.updateStatusFromSelection()
+}
+
+func (m *Model) moveCurrentPackLocation() {
+	if len(m.Packs) == 0 {
+		return
+	}
+
+	pack := &m.Packs[m.Cursor]
+
+	if pack.Status == internal.StatusSystem {
+		m.setStatus(StatusLevelWarning, "System pack cannot be moved.")
+		return
+	}
+
+	if pack.Status == internal.StatusError {
+		m.setStatus(StatusLevelWarning, "Pack with errors cannot be moved.")
+		return
+	}
+
+	if pack.Status == internal.StatusDuplicate {
+		m.setStatus(StatusLevelWarning, "Duplicate pack cannot be moved.")
+		return
+	}
+
+	targetLocation, _ := internal.PackMoveTarget(m.Config, *pack)
+	if m.hasPackConflict(*pack, targetLocation) {
+		m.setStatus(StatusLevelWarning, "A pack with the same UUID already exists in the destination.")
+		return
+	}
+
+	if err := internal.MovePack(m.Config, pack); err != nil {
+		m.setStatus(StatusLevelError, "Move failed: "+err.Error())
+		return
+	}
+
+	m.setStatus(
+		StatusLevelSuccess,
+		"Moved pack to "+pack.Location.String()+".",
+	)
 	m.updateStatusFromSelection()
 }
 
@@ -153,7 +193,35 @@ func (m *Model) moveCurrentUp() {
 
 	m.Cursor--
 
+	m.clearStatus()
 	m.updateStatusFromSelection()
+}
+
+func (m Model) hasPackConflict(pack internal.Pack, targetLocation internal.PackLocation) bool {
+	if pack.UUID == "" {
+		return false
+	}
+
+	for i := range m.Packs {
+		other := m.Packs[i]
+		if i == m.Cursor {
+			continue
+		}
+
+		if other.Type != pack.Type {
+			continue
+		}
+
+		if other.Location != targetLocation {
+			continue
+		}
+
+		if other.UUID == pack.UUID {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (m *Model) moveCurrentDown() {
@@ -167,5 +235,6 @@ func (m *Model) moveCurrentDown() {
 
 	m.Cursor++
 
+	m.clearStatus()
 	m.updateStatusFromSelection()
 }

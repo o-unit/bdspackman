@@ -33,6 +33,8 @@ minecraft bedrockサーバを実行しているユーザが実行できるよう
 
 ```$ bdspackman --help
 Usage of bdspackman:
+  -dirname
+        Show directory name column
   -export-dir string
         Directory to export world pack json files
   -export-prefix string

@@ -183,11 +183,12 @@ func (m Model) View() string {
 	// Status
 	// ----------------------------------------------------------------
 
-	if m.StatusMessage != "" {
+	status := m.currentStatusMessage()
+	if !status.Empty() {
 
 		fmt.Fprintln(&b)
 		fmt.Fprintln(&b, strings.Repeat("-", 40))
-		fmt.Fprintln(&b, m.StatusMessage)
+		fmt.Fprintln(&b, RenderStatusMessage(status))
 	}
 
 	// ----------------------------------------------------------------

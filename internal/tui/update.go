@@ -19,6 +19,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.toggleCurrent()
 			case "enter":
 				m.enterSaveConfirm()
+			case "m", "M":
+				m.moveCurrentPackLocation()
 			case "ctrl+up":
 				m.moveCurrentUp()
 			case "ctrl+down":
