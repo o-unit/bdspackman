@@ -18,6 +18,7 @@ type Config struct {
 	ShowSystemPacks bool
 	ExportPrefix    string
 	ExportDir       string
+	ForceDelete     bool
 }
 
 // LoadConfig parses command line arguments.
@@ -86,6 +87,13 @@ func LoadFlags() (Config, error) {
 		"export-dir",
 		"",
 		"Directory to export world pack json files",
+	)
+
+	flag.BoolVar(
+		&cfg.ForceDelete,
+		"force-delete",
+		false,
+		"Delete packs permanently instead of moving them to delpacks.",
 	)
 
 	flag.Parse()

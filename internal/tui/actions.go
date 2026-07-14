@@ -144,7 +144,7 @@ func (m *Model) deleteCurrentPack() {
 
 	pack := m.Packs[m.Cursor]
 
-	if err := internal.DeletePack(pack); err != nil {
+	if err := internal.DeletePack(m.Config, pack); err != nil {
 		m.enterNormalMode()
 		m.setStatus(StatusLevelError, "Delete failed: "+err.Error())
 		return
