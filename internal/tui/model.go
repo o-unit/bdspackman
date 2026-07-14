@@ -14,6 +14,7 @@ const (
 	ModeNormal Mode = iota
 	ModeConfirmSave
 	ModeConfirmDelete
+	ModeRenameDir
 
 	// (Future)
 	// ModeSearch
@@ -38,6 +39,9 @@ type Model struct {
 
 	// Message for the currently selected pack.
 	SelectionMessage StatusMessage
+
+	// Current directory name input for rename mode.
+	RenameInput string
 }
 
 // NewModel creates a new TUI model.
@@ -53,6 +57,7 @@ func NewModel(cfg internal.Config, packs []internal.Pack) Model {
 		StatusMessage:    StatusMessage{},
 		HelpMessage:      "",
 		SelectionMessage: StatusMessage{},
+		RenameInput:      "",
 	}
 
 	model.updateHelp()

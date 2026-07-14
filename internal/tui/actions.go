@@ -13,7 +13,7 @@ func (m *Model) updateHelp() {
 
 	case ModeNormal:
 		m.HelpMessage =
-			"↑↓ Move  Ctrl+↑↓ Reorder Space Toggle  M MovePack  D Delete  Esc Quit"
+			"↑↓ Move  Ctrl+↑↓ Reorder Space Toggle  M MovePack  D Delete  R Rename  Esc Quit"
 
 	case ModeConfirmSave:
 		m.HelpMessage =
@@ -21,6 +21,9 @@ func (m *Model) updateHelp() {
 	case ModeConfirmDelete:
 		m.HelpMessage =
 			"Y Delete  N Cancel"
+	case ModeRenameDir:
+		m.HelpMessage =
+			"Enter Rename  Backspace DeleteChar  Esc Cancel"
 	default:
 		m.HelpMessage = ""
 	}
@@ -85,10 +88,28 @@ func (m *Model) enterDeleteConfirm() {
 	m.updateHelp()
 }
 
+func (m *Model) enterRenameDirMode() {
+	if len(m.Packs) == 0 {
+		return
+	}
+
+	pack := m.Packs[m.Cursor]
+	if pack.Status == internal.StatusSystem {
+		m.setStatus(StatusLevelWarning, "System pack cannot be renamed.")
+		return
+	}
+
+	m.Mode = ModeRenameDir
+	m.RenameInput = pack.FolderName
+	m.updateRenameStatus()
+	m.updateHelp()
+}
+
 // enterNormalMode switches back to normal mode.
 func (m *Model) enterNormalMode() {
 
 	m.Mode = ModeNormal
+	m.RenameInput = ""
 	m.clearStatus()
 	m.updateHelp()
 }
@@ -136,6 +157,51 @@ func (m *Model) deleteCurrentPack() {
 
 	m.enterNormalMode()
 	m.setStatus(StatusLevelSuccess, "Deleted "+pack.FolderName+".")
+	m.updateStatusFromSelection()
+}
+
+func (m *Model) updateRenameStatus() {
+	m.setStatus(StatusLevelConfirm, "Directory name: "+m.RenameInput)
+}
+
+func (m *Model) renameInputAppend(text string) {
+	m.RenameInput += text
+	m.updateRenameStatus()
+}
+
+func (m *Model) renameInputBackspace() {
+	if m.RenameInput == "" {
+		m.updateRenameStatus()
+		return
+	}
+
+	runes := []rune(m.RenameInput)
+	m.RenameInput = string(runes[:len(runes)-1])
+	m.updateRenameStatus()
+}
+
+func (m *Model) renameCurrentPackDirectory() {
+	if len(m.Packs) == 0 {
+		m.enterNormalMode()
+		return
+	}
+
+	pack := &m.Packs[m.Cursor]
+	oldName := pack.FolderName
+
+	if err := internal.RenamePackDirectory(pack, m.RenameInput); err != nil {
+		m.setStatus(StatusLevelError, "Rename failed: "+err.Error())
+		return
+	}
+
+	m.enterNormalMode()
+
+	if oldName == pack.FolderName {
+		m.setStatus(StatusLevelWarning, "Directory name was not changed.")
+	} else {
+		m.setStatus(StatusLevelSuccess, "Renamed "+oldName+" to "+pack.FolderName+".")
+	}
+
 	m.updateStatusFromSelection()
 }
 
