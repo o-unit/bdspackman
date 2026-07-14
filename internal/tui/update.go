@@ -19,6 +19,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.toggleCurrent()
 			case "enter":
 				m.enterSaveConfirm()
+			case "m", "M":
+				m.moveCurrentPackLocation()
+			case "d", "D":
+				m.enterDeleteConfirm()
+			case "r", "R":
+				m.enterRenameDirMode()
 			case "ctrl+up":
 				m.moveCurrentUp()
 			case "ctrl+down":
@@ -27,12 +33,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case ModeConfirmSave:
 			switch msg.String() {
-			case "y":
+			case "y", "Y":
 				m.save()
-			case "n", "esc":
+			case "n", "N", "esc":
 				m.enterNormalMode()
 			case "ctrl+c":
 				return m, tea.Quit
+			}
+
+		case ModeConfirmDelete:
+			switch msg.String() {
+			case "y", "Y":
+				m.deleteCurrentPack()
+			case "n", "N", "esc":
+				m.enterNormalMode()
+			case "ctrl+c":
+				return m, tea.Quit
+			}
+
+		case ModeRenameDir:
+			switch msg.Type {
+			case tea.KeyEnter:
+				m.renameCurrentPackDirectory()
+			case tea.KeyBackspace, tea.KeyDelete:
+				m.renameInputBackspace()
+			case tea.KeyEsc:
+				m.enterNormalMode()
+			case tea.KeyCtrlC:
+				return m, tea.Quit
+			case tea.KeyRunes:
+				m.renameInputAppend(string(msg.Runes))
 			}
 		}
 	}

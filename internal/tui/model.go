@@ -13,6 +13,8 @@ const (
 	// ModeNormal is the default pack list screen.
 	ModeNormal Mode = iota
 	ModeConfirmSave
+	ModeConfirmDelete
+	ModeRenameDir
 
 	// (Future)
 	// ModeSearch
@@ -30,13 +32,16 @@ type Model struct {
 	Mode Mode
 
 	// Status message shown above the help line.
-	StatusMessage string
+	StatusMessage StatusMessage
 
 	// Help message shown at the bottom.
 	HelpMessage string
 
 	// Message for the currently selected pack.
-	SelectionMessage string
+	SelectionMessage StatusMessage
+
+	// Current directory name input for rename mode.
+	RenameInput string
 }
 
 // NewModel creates a new TUI model.
@@ -49,9 +54,10 @@ func NewModel(cfg internal.Config, packs []internal.Pack) Model {
 		Cursor: 0,
 		Mode:   ModeNormal,
 
-		StatusMessage:    "",
+		StatusMessage:    StatusMessage{},
 		HelpMessage:      "",
-		SelectionMessage: "",
+		SelectionMessage: StatusMessage{},
+		RenameInput:      "",
 	}
 
 	model.updateHelp()
