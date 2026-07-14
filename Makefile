@@ -1,9 +1,12 @@
-.PHONY: build release clean
+.PHONY: setup build release clean
 
 APP := bdspackman
 VERSION ?= dev
 COMMIT := $(shell git rev-parse --short HEAD)
 OUTDIR := build/$(VERSION)
+
+setup:
+	go mod download
 
 build:
 	mkdir -p $(OUTDIR)

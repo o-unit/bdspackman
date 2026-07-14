@@ -25,8 +25,9 @@ func main() {
 
 	if cfg.Version {
 		fmt.Printf(
-			"bdspackman %s\n",
+			"bdspackman %s (commit: %s)\n",
 			version,
+			commit,
 		)
 		return
 	}
