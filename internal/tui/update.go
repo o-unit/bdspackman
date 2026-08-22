@@ -33,18 +33,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.Type {
 			case tea.KeyEnter:
 				path := strings.TrimSpace(m.AddInput.Value())
-
-				m.leaveAddMode()
-
 				if path == "" {
+					m.leaveAddMode()
 					m.setStatus(StatusLevelWarning, "No path specified.")
-				} else if m.AddToWorld {
-					m.setStatus(StatusLevelInfo, "Add to World: "+path)
 				} else {
-					m.setStatus(StatusLevelInfo, "Add to Server: "+path)
+					m.addPack(path)
 				}
-
-				m.enterNormalMode()
 				return m, nil
 
 			case tea.KeyTab:

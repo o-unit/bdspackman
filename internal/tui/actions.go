@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/o-unit/bdspackman/internal"
@@ -17,7 +18,7 @@ func (m *Model) updateHelp() {
 
 	case ModeNormal:
 		m.HelpMessage =
-			"↑↓ Move  Ctrl+↑↓ Reorder Space Toggle  M MovePack  D Delete  R Rename  Esc Quit"
+			"↑↓ Move  Ctrl+↑↓ Reorder Space Toggle  A Add(Server)  a Add(World)  M Move  D Delete  R Rename  Esc Quit"
 
 	case ModeConfirmSave:
 		m.HelpMessage =
@@ -133,9 +134,37 @@ func (m *Model) leaveAddMode() {
 	m.AddInput.SetValue("")
 	m.AddInput.Blur()
 
-	m.enterNormalMode()
-
 	m.invalidateAddCompletion()
+	m.Mode = ModeNormal
+	m.updateHelp()
+}
+
+func (m *Model) addPack(path string) {
+	toWorld := m.AddToWorld
+	m.leaveAddMode()
+
+	added, err := internal.AddPack(m.Config, path, toWorld)
+	if err != nil {
+		m.setStatus(StatusLevelError, "Add failed: "+err.Error())
+		return
+	}
+
+	packs, err := internal.ScanPacks(m.Config)
+	if err != nil {
+		m.setStatus(StatusLevelError, "Add succeeded, but reload failed: "+err.Error())
+		return
+	}
+
+	m.Packs = packs
+	m.Cursor = 0
+	for i, pack := range packs {
+		if pack.UUID == added[0].UUID && pack.Type == added[0].Type && pack.Location == added[0].Location {
+			m.Cursor = i
+			break
+		}
+	}
+	m.updateStatusFromSelection()
+	m.setStatus(StatusLevelSuccess, fmt.Sprintf("Added %d pack(s) to %s.", len(added), added[0].Location.String()))
 }
 
 // completeAddPath performs filesystem path completion.
