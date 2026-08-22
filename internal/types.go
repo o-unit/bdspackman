@@ -107,7 +107,13 @@ func (p Pack) VersionString() string {
 
 // Manifest represents manifest.json.
 type Manifest struct {
-	Header ManifestHeader `json:"header"`
+	Header  ManifestHeader   `json:"header"`
+	Modules []ManifestModule `json:"modules"`
+}
+
+// ManifestModule identifies one capability provided by a pack manifest.
+type ManifestModule struct {
+	Type string `json:"type"`
 }
 
 // ManifestHeader represents manifest.header.

@@ -1,6 +1,11 @@
 package tui
 
-import "github.com/o-unit/bdspackman/internal"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/o-unit/bdspackman/internal"
+)
 
 func (m *Model) setHelp(message string) {
 	m.HelpMessage = message
@@ -13,7 +18,7 @@ func (m *Model) updateHelp() {
 
 	case ModeNormal:
 		m.HelpMessage =
-			"↑↓ Move  Ctrl+↑↓ Reorder Space Toggle  M MovePack  D Delete  R Rename  Esc Quit"
+			"↑↓ Move  Ctrl+↑↓ Reorder Space Toggle  A Add(Server)  a Add(World)  M Move  D Delete  R Rename  Esc Quit"
 
 	case ModeConfirmSave:
 		m.HelpMessage =
@@ -103,6 +108,113 @@ func (m *Model) enterRenameDirMode() {
 	m.RenameInput = pack.FolderName
 	m.updateRenameStatus()
 	m.updateHelp()
+}
+
+// enterAddMode enters add-pack input mode.
+func (m *Model) enterAddMode(toWorld bool) {
+	m.AddToWorld = toWorld
+
+	m.AddInput.SetValue("")
+	m.AddInput.Focus()
+
+	m.Mode = ModeAddInput
+
+	m.invalidateAddCompletion()
+
+	if toWorld {
+		m.setStatus(StatusLevelInfo, "Enter path to add pack to World.")
+	} else {
+		m.setStatus(StatusLevelInfo, "Enter path to add pack to Server.")
+	}
+
+}
+
+// leaveAddMode leaves add-pack input mode.
+func (m *Model) leaveAddMode() {
+	m.AddInput.SetValue("")
+	m.AddInput.Blur()
+
+	m.invalidateAddCompletion()
+	m.Mode = ModeNormal
+	m.updateHelp()
+}
+
+func (m *Model) addPack(path string) {
+	toWorld := m.AddToWorld
+	m.leaveAddMode()
+
+	added, err := internal.AddPack(m.Config, path, toWorld)
+	if err != nil {
+		m.setStatus(StatusLevelError, "Add failed: "+err.Error())
+		return
+	}
+
+	packs, err := internal.ScanPacks(m.Config)
+	if err != nil {
+		m.setStatus(StatusLevelError, "Add succeeded, but reload failed: "+err.Error())
+		return
+	}
+
+	m.Packs = packs
+	m.Cursor = 0
+	for i, pack := range packs {
+		if pack.UUID == added[0].UUID && pack.Type == added[0].Type && pack.Location == added[0].Location {
+			m.Cursor = i
+			break
+		}
+	}
+	m.updateStatusFromSelection()
+	m.setStatus(StatusLevelSuccess, fmt.Sprintf("Added %d pack(s) to %s.", len(added), added[0].Location.String()))
+}
+
+// completeAddPath performs filesystem path completion.
+func (m *Model) completeAddPath() {
+
+	current := strings.TrimSpace(m.AddInput.Value())
+
+	// 入力が変わったら候補を再検索
+	if current != m.LastCompletionInput {
+
+		candidates, err := CompletePath(current)
+		if err != nil || len(candidates) == 0 {
+			return
+		}
+
+		m.AddCompletions = candidates
+		m.AddCompletionIndex = 0
+		m.LastCompletionInput = current
+	}
+
+	if len(m.AddCompletions) == 0 {
+		return
+	}
+
+	m.AddInput.SetValue(m.AddCompletions[m.AddCompletionIndex])
+	m.AddInput.CursorEnd()
+	m.LastCompletionInput = m.AddInput.Value()
+
+	m.AddCompletionIndex++
+	if m.AddCompletionIndex >= len(m.AddCompletions) {
+		m.AddCompletionIndex = 0
+	}
+}
+
+// invalidateAddCompletion clears cached completion candidates.
+func (m *Model) invalidateAddCompletion() {
+	m.AddCompletions = nil
+	m.AddCompletionIndex = 0
+	m.LastCompletionInput = ""
+}
+
+func (m *Model) updateInputWidths() {
+
+	width := m.ViewportWidth - 4
+
+	if width < 20 {
+		width = 20
+	}
+
+	m.AddInput.Width = width
 }
 
 // enterNormalMode switches back to normal mode.
