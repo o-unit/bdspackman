@@ -1,9 +1,69 @@
 package tui
 
-import tea "github.com/charmbracelet/bubbletea"
+import (
+	"strings"
+
+	tea "github.com/charmbracelet/bubbletea"
+)
 
 // Update handles keyboard input.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+
+	// ターミナルサイズ変更
+	if size, ok := msg.(tea.WindowSizeMsg); ok {
+		m.ViewportWidth = size.Width
+		m.updateInputWidths()
+		return m, nil
+	}
+
+	switch m.Mode {
+	case ModeAddInput:
+		var cmd tea.Cmd
+		before := m.AddInput.Value()
+
+		m.AddInput, cmd = m.AddInput.Update(msg)
+
+		after := m.AddInput.Value()
+		if before != after {
+			m.invalidateAddCompletion()
+		}
+		switch msg := msg.(type) {
+
+		case tea.KeyMsg:
+			switch msg.Type {
+			case tea.KeyEnter:
+				path := strings.TrimSpace(m.AddInput.Value())
+
+				m.leaveAddMode()
+
+				if path == "" {
+					m.setStatus(StatusLevelWarning, "No path specified.")
+				} else if m.AddToWorld {
+					m.setStatus(StatusLevelInfo, "Add to World: "+path)
+				} else {
+					m.setStatus(StatusLevelInfo, "Add to Server: "+path)
+				}
+
+				m.enterNormalMode()
+				return m, nil
+
+			case tea.KeyTab:
+				m.completeAddPath()
+				return m, nil
+
+			case tea.KeyEsc:
+				m.leaveAddMode()
+				m.setStatus(StatusLevelInfo, "Add cancelled.")
+				return m, nil
+
+			case tea.KeyCtrlC:
+				return m, tea.Quit
+			}
+		}
+
+		return m, cmd
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch m.Mode {
@@ -25,6 +85,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.enterDeleteConfirm()
 			case "r", "R":
 				m.enterRenameDirMode()
+			case "A":
+				m.enterAddMode(false)
+			case "a":
+				m.enterAddMode(true)
 			case "ctrl+up":
 				m.moveCurrentUp()
 			case "ctrl+down":
