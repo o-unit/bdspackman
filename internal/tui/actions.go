@@ -1,6 +1,10 @@
 package tui
 
-import "github.com/o-unit/bdspackman/internal"
+import (
+	"strings"
+
+	"github.com/o-unit/bdspackman/internal"
+)
 
 func (m *Model) setHelp(message string) {
 	m.HelpMessage = message
@@ -103,6 +107,85 @@ func (m *Model) enterRenameDirMode() {
 	m.RenameInput = pack.FolderName
 	m.updateRenameStatus()
 	m.updateHelp()
+}
+
+// enterAddMode enters add-pack input mode.
+func (m *Model) enterAddMode(toWorld bool) {
+	m.AddToWorld = toWorld
+
+	m.AddInput.SetValue("")
+	m.AddInput.Focus()
+
+	m.Mode = ModeAddInput
+
+	m.invalidateAddCompletion()
+
+	if toWorld {
+		m.setStatus(StatusLevelInfo, "Enter path to add pack to World.")
+	} else {
+		m.setStatus(StatusLevelInfo, "Enter path to add pack to Server.")
+	}
+
+}
+
+// leaveAddMode leaves add-pack input mode.
+func (m *Model) leaveAddMode() {
+	m.AddInput.SetValue("")
+	m.AddInput.Blur()
+
+	m.enterNormalMode()
+
+	m.invalidateAddCompletion()
+}
+
+// completeAddPath performs filesystem path completion.
+func (m *Model) completeAddPath() {
+
+	current := strings.TrimSpace(m.AddInput.Value())
+
+	// 入力が変わったら候補を再検索
+	if current != m.LastCompletionInput {
+
+		candidates, err := CompletePath(current)
+		if err != nil || len(candidates) == 0 {
+			return
+		}
+
+		m.AddCompletions = candidates
+		m.AddCompletionIndex = 0
+		m.LastCompletionInput = current
+	}
+
+	if len(m.AddCompletions) == 0 {
+		return
+	}
+
+	m.AddInput.SetValue(m.AddCompletions[m.AddCompletionIndex])
+	m.AddInput.CursorEnd()
+	m.LastCompletionInput = m.AddInput.Value()
+
+	m.AddCompletionIndex++
+	if m.AddCompletionIndex >= len(m.AddCompletions) {
+		m.AddCompletionIndex = 0
+	}
+}
+
+// invalidateAddCompletion clears cached completion candidates.
+func (m *Model) invalidateAddCompletion() {
+	m.AddCompletions = nil
+	m.AddCompletionIndex = 0
+	m.LastCompletionInput = ""
+}
+
+func (m *Model) updateInputWidths() {
+
+	width := m.ViewportWidth - 4
+
+	if width < 20 {
+		width = 20
+	}
+
+	m.AddInput.Width = width
 }
 
 // enterNormalMode switches back to normal mode.

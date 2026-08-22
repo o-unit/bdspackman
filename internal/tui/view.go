@@ -12,6 +12,37 @@ func (m Model) View() string {
 
 	var b strings.Builder
 
+	// ----------------------------------------------------------------
+	// Add Pack Input
+	// ----------------------------------------------------------------
+
+	if m.Mode == ModeAddInput {
+
+		target := "Server"
+		if m.AddToWorld {
+			target = "World"
+		}
+
+		fmt.Fprint(&b, "bdspackman")
+		fmt.Fprintln(&b)
+		fmt.Fprintln(&b)
+		fmt.Fprintf(&b, "Add Pack (%s)\n\n", target)
+
+		fmt.Fprintf(&b, "Path : %s\n", m.AddInput.View())
+
+		status := m.currentStatusMessage()
+		if !status.Empty() {
+			fmt.Fprintln(&b)
+			fmt.Fprintln(&b, strings.Repeat("-", 40))
+			fmt.Fprintln(&b, RenderStatusMessage(status))
+		}
+
+		fmt.Fprintln(&b)
+		fmt.Fprintln(&b, "Enter: Add    Esc: Cancel")
+
+		return b.String()
+	}
+
 	fmt.Fprint(&b, "bdspackman")
 
 	if m.Config.ExportPrefix != "" {
