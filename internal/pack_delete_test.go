@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestDeletePackMovesPackToDelpacks(t *testing.T) {
@@ -52,6 +53,30 @@ func TestDeletePackMovesPackToDelpacks(t *testing.T) {
 
 	if len(entries) != 1 {
 		t.Fatalf("backup count = %d, want 1", len(entries))
+	}
+}
+
+func TestDeletePackUsesNextDailySequence(t *testing.T) {
+	serverDir := t.TempDir()
+	path := filepath.Join(serverDir, "behavior_packs", "pack")
+	if err := os.MkdirAll(path, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	backupDir := filepath.Join(serverDir, "delpacks", "server", "behavior_packs")
+	if err := os.MkdirAll(backupDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	date := time.Now().Format("060102")
+	if err := os.Mkdir(filepath.Join(backupDir, "pack-"+date+"-00"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := DeletePack(Config{ServerDir: serverDir}, Pack{Path: path, Location: PackLocationServer, Type: PackTypeBehavior}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(backupDir, "pack-"+date+"-01")); err != nil {
+		t.Fatalf("sequenced backup stat: %v", err)
 	}
 }
 

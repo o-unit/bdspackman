@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 )
@@ -37,10 +39,23 @@ func DeletePack(cfg Config, pack Pack) error {
 
 	date := time.Now().Format("060102")
 
-	dst := filepath.Join(
-		backupDir,
-		filepath.Base(pack.Path)+"-"+date,
-	)
+	dst, err := nextDeleteBackupPath(backupDir, filepath.Base(pack.Path), date)
+	if err != nil {
+		return err
+	}
 
 	return MovePath(pack.Path, dst, FileOperationOptions{Overwrite: false})
+}
+
+func nextDeleteBackupPath(backupDir, name, date string) (string, error) {
+	for sequence := 0; ; sequence++ {
+		path := filepath.Join(backupDir, fmt.Sprintf("%s-%s-%02d", name, date, sequence))
+		_, err := os.Lstat(path)
+		if os.IsNotExist(err) {
+			return path, nil
+		}
+		if err != nil {
+			return "", err
+		}
+	}
 }
