@@ -19,16 +19,13 @@ func ScanPacks(cfg Config) ([]Pack, error) {
 		return nil, err
 	}
 
-	behaviorSet := WorldPackSet(behaviorEnabled)
-	resourceSet := WorldPackSet(resourceEnabled)
-
 	var packs []Pack
 
 	type target struct {
 		Path     string
 		Type     PackType
 		Location PackLocation
-		Enabled  map[string]struct{}
+		Enabled  []WorldPack
 	}
 
 	targets := []target{
@@ -36,25 +33,25 @@ func ScanPacks(cfg Config) ([]Pack, error) {
 			Path:     cfg.ServerBehaviorPackDir(),
 			Type:     PackTypeBehavior,
 			Location: PackLocationServer,
-			Enabled:  behaviorSet,
+			Enabled:  behaviorEnabled,
 		},
 		{
 			Path:     cfg.ServerResourcePackDir(),
 			Type:     PackTypeResource,
 			Location: PackLocationServer,
-			Enabled:  resourceSet,
+			Enabled:  resourceEnabled,
 		},
 		{
 			Path:     cfg.WorldBehaviorPackDir(),
 			Type:     PackTypeBehavior,
 			Location: PackLocationWorld,
-			Enabled:  behaviorSet,
+			Enabled:  behaviorEnabled,
 		},
 		{
 			Path:     cfg.WorldResourcePackDir(),
 			Type:     PackTypeResource,
 			Location: PackLocationWorld,
-			Enabled:  resourceSet,
+			Enabled:  resourceEnabled,
 		},
 	}
 
@@ -92,7 +89,7 @@ func scanDirectory(
 	dir string,
 	packType PackType,
 	location PackLocation,
-	enabled map[string]struct{},
+	enabled []WorldPack,
 	language string,
 	showSystem bool,
 ) ([]Pack, error) {
@@ -140,7 +137,7 @@ func buildPack(
 	folderName string,
 	packType PackType,
 	location PackLocation,
-	enabled map[string]struct{},
+	enabled []WorldPack,
 	language string,
 	showSystem bool,
 ) (Pack, bool) {
@@ -179,7 +176,7 @@ func buildPack(
 
 	if pack.Status != StatusSystem {
 
-		if _, ok := enabled[pack.UUID]; ok {
+		if isPackEnabled(enabled, pack.UUID, pack.Version) {
 			pack.Status = StatusOn
 		} else {
 			pack.Status = StatusOff
@@ -187,6 +184,18 @@ func buildPack(
 	}
 
 	return pack, true
+}
+
+// isPackEnabled reports whether a world pack entry with the same UUID requires
+// a version no newer than the version installed on disk.
+func isPackEnabled(enabled []WorldPack, uuid string, version []uint32) bool {
+	for _, worldPack := range enabled {
+		if worldPack.PackID == uuid && compareVersion(worldPack.Version, version) <= 0 {
+			return true
+		}
+	}
+
+	return false
 }
 
 func sortPacks(packs []Pack) {
@@ -340,7 +349,7 @@ func appendOrderedPacks(
 					continue
 				}
 
-				if p.UUID != wp.PackID {
+				if p.UUID != wp.PackID || compareVersion(wp.Version, p.Version) > 0 {
 					continue
 				}
 
